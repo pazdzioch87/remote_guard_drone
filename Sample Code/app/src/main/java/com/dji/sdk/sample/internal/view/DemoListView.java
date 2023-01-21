@@ -17,6 +17,7 @@ import com.dji.sdk.sample.demo.appactivation.AppActivationView;
 import com.dji.sdk.sample.demo.battery.PushBatteryDataView;
 import com.dji.sdk.sample.demo.battery.SetGetDischargeDayView;
 import com.dji.sdk.sample.demo.camera.CameraCalibration;
+import com.dji.sdk.sample.demo.camera.DronePlatformView;
 import com.dji.sdk.sample.demo.camera.FetchMediaView;
 import com.dji.sdk.sample.demo.camera.LiveStreamView;
 import com.dji.sdk.sample.demo.camera.MediaPlaybackView;
@@ -93,6 +94,9 @@ public class DemoListView extends FrameLayout {
 
         // Build model for ListView
         ListItem.ListBuilder builder = new ListItem.ListBuilder();
+        builder.addGroup(R.string.component_listview_sdk_MP,
+                false,
+                new GroupItem(R.string.component_listview_droneplatform, DronePlatformView.class));
         builder.addGroup(R.string.component_listview_sdk_4_16,
                 false,
                 new GroupItem(R.string.uas_view, UASView.class),

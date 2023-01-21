@@ -63,6 +63,36 @@
                 android:layout_toRightOf="@+id/btn_sound_on"
                 android:text="Sound Off" />
 
+            <ToggleButton
+                android:id="@+id/btn_start_simulator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Start Simulator"
+                android:textOff="Start Simulator"
+                android:textOn="Stop Simulator"
+                android:layout_marginTop="10dp"
+                style="@style/common_button"
+                android:layout_below="@+id/btn_sound_on"
+                android:layout_marginRight="10dp"/>
+
+            <Button
+                android:id="@+id/btn_take_off"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Take Off"
+                style="@style/common_button"
+                android:layout_below="@id/btn_start_simulator"
+                android:layout_marginTop="10dp"/>
+
+            <Button
+                android:id="@+id/btn_landing"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Landing"
+                style="@style/common_button"
+                android:layout_toRightOf="@+id/btn_take_off"
+                android:layout_marginTop="10dp"/>
+
             <com.dji.sdk.sample.internal.utils.OnScreenJoystick
                 android:id="@+id/directionJoystickRight"
                 android:layout_width="130dp"
