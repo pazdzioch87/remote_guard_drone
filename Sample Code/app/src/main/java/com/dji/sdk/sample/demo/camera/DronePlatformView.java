@@ -7,6 +7,7 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -14,6 +15,7 @@ import android.widget.ToggleButton;
 
 import com.dji.sdk.sample.R;
 import com.dji.sdk.sample.demo.flightcontroller.VirtualStickView;
+import com.dji.sdk.sample.internal.OnScreenJoystickListener;
 import com.dji.sdk.sample.internal.controller.DJISampleApplication;
 import com.dji.sdk.sample.internal.utils.DialogUtils;
 import com.dji.sdk.sample.internal.utils.Helper;
@@ -22,11 +24,14 @@ import com.dji.sdk.sample.internal.utils.OnScreenJoystick;
 import com.dji.sdk.sample.internal.utils.ToastUtils;
 import com.dji.sdk.sample.internal.utils.VideoFeedView;
 import com.dji.sdk.sample.internal.view.PresentableView;
+import com.microsoft.signalr.HubConnection;
+import com.microsoft.signalr.HubConnectionBuilder;
 
 
 import androidx.annotation.NonNull;
 
 import dji.common.error.DJIError;
+import dji.common.flightcontroller.simulator.SimulatorState;
 import dji.sdk.base.BaseProduct;
 import dji.sdk.camera.VideoFeeder;
 import dji.sdk.sdkmanager.DJISDKManager;
@@ -34,7 +39,6 @@ import dji.sdk.sdkmanager.LiveStreamManager;
 
 
 import dji.common.flightcontroller.simulator.InitializationData;
-import dji.common.flightcontroller.simulator.SimulatorState;
 import dji.common.flightcontroller.virtualstick.FlightControlData;
 import dji.common.flightcontroller.virtualstick.FlightCoordinateSystem;
 import dji.common.flightcontroller.virtualstick.RollPitchControlMode;
@@ -42,12 +46,8 @@ import dji.common.flightcontroller.virtualstick.VerticalControlMode;
 import dji.common.flightcontroller.virtualstick.YawControlMode;
 import dji.common.model.LocationCoordinate2D;
 import dji.common.util.CommonCallbacks;
-import dji.keysdk.FlightControllerKey;
-import dji.keysdk.KeyManager;
 import dji.sdk.flightcontroller.FlightController;
 import dji.sdk.flightcontroller.Simulator;
-
-import static com.dji.sdk.sample.internal.utils.ToastUtils.showToast;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -60,7 +60,7 @@ import java.util.TimerTask;
  * <p>
  * Copyright (c) 2019, DJI All Rights Reserved.
  */
-public class DronePlatformView extends LinearLayout implements PresentableView, View.OnClickListener {
+public class DronePlatformView extends LinearLayout implements PresentableView, View.OnClickListener, CompoundButton.OnCheckedChangeListener {
 
     private String liveShowUrl = "please input your live show url here";
 
@@ -69,9 +69,11 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
 
     // ------------------ flight --------------------------//
     private Button btnTakeOff;
+    private Button btnLanding;
     private ToggleButton btnSimulator;
     private OnScreenJoystick screenJoystickRight;
     private OnScreenJoystick screenJoystickLeft;
+    private TextView textView;
 
     private Timer sendVirtualStickDataTimer;
     private SendVirtualStickDataTask sendVirtualStickDataTask;
@@ -84,6 +86,9 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
     private Simulator simulator = null;
 
     // ------------------ flight --------------------------//
+
+    // ------------------ SignalR -------------------------//
+    private HubConnection hubConnection;
 
     private EditText showUrlInputEdit;
 
@@ -102,7 +107,37 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
         init(context);
         initUI(context);
         initListener();
+        initSignalR();
     }
+
+    private void initSignalR() {
+        hubConnection = HubConnectionBuilder
+                .create("http://dronecontrolbroker.azurewebsites.net/movementHub")
+                .build();
+
+        try {
+            hubConnection.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        hubConnection.on(
+                "MoveStepLeft",
+                () -> {
+                    if (flightController != null) {
+                        roll = 4;
+                        flightController.sendVirtualStickFlightControlData(
+                                new FlightControlData(roll, pitch, yaw, throttle), new CommonCallbacks.CompletionCallback() {
+                            @Override
+                            public void onResult(DJIError djiError) {
+                                if (djiError != null) {
+                                    ToastUtils.setResultToToast(djiError.getDescription());
+                                }
+                            }
+                        });
+                    }
+        });
+    }
+
 
     private void init(Context context) {
         LayoutInflater layoutInflater = (LayoutInflater) context.getSystemService(Service.LAYOUT_INFLATER_SERVICE);
@@ -121,6 +156,13 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
         flightController.setRollPitchControlMode(RollPitchControlMode.VELOCITY);
         flightController.setYawControlMode(YawControlMode.ANGULAR_VELOCITY);
         flightController.setRollPitchCoordinateSystem(FlightCoordinateSystem.BODY);
+        flightController.setVirtualStickModeEnabled(true, new CommonCallbacks.CompletionCallback() {
+            @Override
+            public void onResult(DJIError djiError) {
+                flightController.setVirtualStickAdvancedModeEnabled(true);
+                DialogUtils.showDialogBasedOnError(getContext(), djiError);
+            }
+        });
 
         // Check if the simulator is activated.
         if (simulator == null) {
@@ -133,48 +175,41 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
         setClickable(true);
         setOrientation(VERTICAL);
         LayoutInflater layoutInflater = (LayoutInflater) context.getSystemService(Service.LAYOUT_INFLATER_SERVICE);
-        layoutInflater.inflate(R.layout.view_live_stream, this, true);
+        layoutInflater.inflate(R.layout.view_droneplatform, this, true);
 
-        primaryVideoFeedView = (VideoFeedView) findViewById(R.id.video_view_primary_video_feed);
+        primaryVideoFeedView = (VideoFeedView) findViewById(R.id.video_view_primary_video_feed_dp);
         primaryVideoFeedView.registerLiveVideo(VideoFeeder.getInstance().getPrimaryVideoFeed(), true);
 
-        fpvVideoFeedView = (VideoFeedView) findViewById(R.id.video_view_fpv_video_feed);
+        fpvVideoFeedView = (VideoFeedView) findViewById(R.id.video_view_fpv_video_feed_dp);
         fpvVideoFeedView.registerLiveVideo(VideoFeeder.getInstance().getSecondaryVideoFeed(), false);
         if (Helper.isMultiStreamPlatform()){
             fpvVideoFeedView.setVisibility(VISIBLE);
         }
 
-        showUrlInputEdit = (EditText) findViewById(R.id.edit_live_show_url_input);
+        showUrlInputEdit = (EditText) findViewById(R.id.edit_live_show_url_input_dp);
         showUrlInputEdit.setText(liveShowUrl);
 
-        startLiveShowBtn = (Button) findViewById(R.id.btn_start_live_show);
-        stopLiveShowBtn = (Button) findViewById(R.id.btn_stop_live_show);
-        soundOnBtn = (Button) findViewById(R.id.btn_sound_on);
-        soundOffBtn = (Button) findViewById(R.id.btn_sound_off);
+        startLiveShowBtn = (Button) findViewById(R.id.btn_start_live_show_dp);
+        stopLiveShowBtn = (Button) findViewById(R.id.btn_stop_live_show_dp);
+        soundOnBtn = (Button) findViewById(R.id.btn_sound_on_dp);
+        soundOffBtn = (Button) findViewById(R.id.btn_sound_off_dp);
 
         startLiveShowBtn.setOnClickListener(this);
         stopLiveShowBtn.setOnClickListener(this);
         soundOnBtn.setOnClickListener(this);
         soundOffBtn.setOnClickListener(this);
 
+        btnTakeOff = (Button) findViewById(R.id.btn_take_off_dp);
+        btnLanding = (Button) findViewById(R.id.btn_landing_dp);
 
-        btnTakeOff = (Button) findViewById(R.id.btn_take_off);
+        btnSimulator = (ToggleButton) findViewById(R.id.btn_start_simulator_dp);
+        textView = (TextView) findViewById(R.id.textview_simulator_dp);
 
-        btnSimulator = (ToggleButton) findViewById(R.id.btn_start_simulator);
+        screenJoystickRight = (OnScreenJoystick) findViewById(R.id.directionJoystickRight_dp);
+        screenJoystickLeft = (OnScreenJoystick) findViewById(R.id.directionJoystickLeft_dp);
 
-        textView = (TextView) findViewById(R.id.textview_simulator);
-
-        screenJoystickRight = (OnScreenJoystick) findViewById(R.id.directionJoystickRight);
-        screenJoystickLeft = (OnScreenJoystick) findViewById(R.id.directionJoystickLeft);
-
-        btnEnableVirtualStick.setOnClickListener(this);
-        btnDisableVirtualStick.setOnClickListener(this);
-        btnHorizontalCoordinate.setOnClickListener(this);
-        btnSetYawControlMode.setOnClickListener(this);
-        btnSetVerticalControlMode.setOnClickListener(this);
-        btnSetRollPitchControlMode.setOnClickListener(this);
         btnTakeOff.setOnClickListener(this);
-        btnSimulator.setOnCheckedChangeListener(VirtualStickView.this);
+        btnSimulator.setOnCheckedChangeListener(DronePlatformView.this);
 
         if (isSimulatorActived) {
             btnSimulator.setChecked(true);
@@ -218,19 +253,114 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
         if (isLiveStreamManagerOn()){
             DJISDKManager.getInstance().getLiveStreamManager().registerListener(listener);
         }
+        setUpListeners();
+    }
+
+    private void setUpListeners() {
+        if (simulator != null) {
+            simulator.setStateCallback(new SimulatorState.Callback() {
+                @Override
+                public void onUpdate(@NonNull final SimulatorState simulatorState) {
+                    ToastUtils.setResultToText(textView,
+                            "Yaw : "
+                                    + simulatorState.getYaw()
+                                    + ","
+                                    + "X : "
+                                    + simulatorState.getPositionX()
+                                    + "\n"
+                                    + "Y : "
+                                    + simulatorState.getPositionY()
+                                    + ","
+                                    + "Z : "
+                                    + simulatorState.getPositionZ());
+                }
+            });
+        } else {
+            ToastUtils.setResultToToast("Simulator disconnected!");
+        }
+
+        screenJoystickRight.setJoystickListener(new OnScreenJoystickListener() {
+
+            @Override
+            public void onTouch(OnScreenJoystick joystick, float pX, float pY) {
+                if (Math.abs(pX) < 0.02) {
+                    pX = 0;
+                }
+
+                if (Math.abs(pY) < 0.02) {
+                    pY = 0;
+                }
+                float pitchJoyControlMaxSpeed = 10;
+                float rollJoyControlMaxSpeed = 10;
+
+                pitch = pitchJoyControlMaxSpeed * pY;
+                roll = rollJoyControlMaxSpeed * pX;
+
+                if (null == sendVirtualStickDataTimer) {
+                    sendVirtualStickDataTask = new DronePlatformView.SendVirtualStickDataTask();
+                    sendVirtualStickDataTimer = new Timer();
+                    sendVirtualStickDataTimer.schedule(sendVirtualStickDataTask, 100, 200);
+                }
+            }
+        });
+
+        screenJoystickLeft.setJoystickListener(new OnScreenJoystickListener() {
+
+            @Override
+            public void onTouch(OnScreenJoystick joystick, float pX, float pY) {
+                if (Math.abs(pX) < 0.02) {
+                    pX = 0;
+                }
+
+                if (Math.abs(pY) < 0.02) {
+                    pY = 0;
+                }
+                float verticalJoyControlMaxSpeed = 4;
+                float yawJoyControlMaxSpeed = 20;
+
+                yaw = yawJoyControlMaxSpeed * pX;
+                throttle = verticalJoyControlMaxSpeed * pY;
+
+                if (null == sendVirtualStickDataTimer) {
+                    sendVirtualStickDataTask = new DronePlatformView.SendVirtualStickDataTask();
+                    sendVirtualStickDataTimer = new Timer();
+                    sendVirtualStickDataTimer.schedule(sendVirtualStickDataTask, 0, 200);
+                }
+            }
+        });
+    }
+
+    private void tearDownListeners() {
+        Simulator simulator = ModuleVerificationUtil.getSimulator();
+        if (simulator != null) {
+            simulator.setStateCallback(null);
+        }
+        screenJoystickLeft.setJoystickListener(null);
+        screenJoystickRight.setJoystickListener(null);
     }
 
     @Override
     protected void onDetachedFromWindow() {
-        super.onDetachedFromWindow();
         if (isLiveStreamManagerOn()){
             DJISDKManager.getInstance().getLiveStreamManager().unregisterListener(listener);
         }
+        if (null != sendVirtualStickDataTimer) {
+            if (sendVirtualStickDataTask != null) {
+                sendVirtualStickDataTask.cancel();
+
+            }
+            sendVirtualStickDataTimer.cancel();
+            sendVirtualStickDataTimer.purge();
+            sendVirtualStickDataTimer = null;
+            sendVirtualStickDataTask = null;
+        }
+        tearDownListeners();
+        super.onDetachedFromWindow();
     }
 
     @Override
     public int getDescription() {
-        return R.string.component_listview_live_stream;
+        return R.string.component_listview_drone_platform;
     }
 
     @NonNull
@@ -303,20 +433,28 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
             return;
         }
         switch (v.getId()) {
-            case R.id.btn_start_live_show:
+            case R.id.btn_start_live_show_dp:
                 startLiveShow();
                 break;
-            case R.id.btn_stop_live_show:
+            case R.id.btn_stop_live_show_dp:
                 stopLiveShow();
                 break;
-            case R.id.btn_sound_on:
+            case R.id.btn_sound_on_dp:
                 soundOn();
                 break;
-            case R.id.btn_sound_off:
+            case R.id.btn_sound_off_dp:
                 soundOff();
                 break;
-            case R.id.btn_take_off:
+            case R.id.btn_take_off_dp:
                 flightController.startTakeoff(new CommonCallbacks.CompletionCallback() {
+                    @Override
+                    public void onResult(DJIError djiError) {
+                        DialogUtils.showDialogBasedOnError(getContext(), djiError);
+                    }
+                });
+                break;
+            case R.id.btn_landing_dp:
+                flightController.startLanding(new CommonCallbacks.CompletionCallback() {
                     @Override
                     public void onResult(DJIError djiError) {
                         DialogUtils.showDialogBasedOnError(getContext(), djiError);
@@ -328,6 +466,39 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
         }
     }
 
+    @Override
+    public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+        if (compoundButton == btnSimulator) {
+            onClickSimulator(b);
+        }
+    }
+
+    private void onClickSimulator(boolean isChecked) {
+        if (simulator == null) {
+            return;
+        }
+        if (isChecked) {
+            textView.setVisibility(VISIBLE);
+            simulator.start(InitializationData.createInstance(new LocationCoordinate2D(23, 113), 10, 10), new CommonCallbacks.CompletionCallback() {
+                @Override
+                public void onResult(DJIError djiError) {
+                    if (djiError != null) {
+                        ToastUtils.setResultToToast(djiError.getDescription());
+                    }
+                }
+            });
+        } else {
+            textView.setVisibility(INVISIBLE);
+            simulator.stop(new CommonCallbacks.CompletionCallback() {
+                @Override
+                public void onResult(DJIError djiError) {
+                    if (djiError != null) {
+                        ToastUtils.setResultToToast(djiError.getDescription());
+                    }
+                }
+            });
+        }
+    }
 
     private class SendVirtualStickDataTask extends TimerTask {
         @Override

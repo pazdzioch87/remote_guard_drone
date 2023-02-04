@@ -96,7 +96,7 @@ public class DemoListView extends FrameLayout {
         ListItem.ListBuilder builder = new ListItem.ListBuilder();
         builder.addGroup(R.string.component_listview_sdk_MP,
                 false,
-                new GroupItem(R.string.component_listview_droneplatform, DronePlatformView.class));
+                new GroupItem(R.string.component_listview_drone_platform, DronePlatformView.class));
         builder.addGroup(R.string.component_listview_sdk_4_16,
                 false,
                 new GroupItem(R.string.uas_view, UASView.class),

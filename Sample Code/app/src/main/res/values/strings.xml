@@ -40,7 +40,7 @@
     <string name="component_listview_accessory_aggregation">Accessory Aggregation</string>
     <string name="component_listview_audio_file_list_manager">Audio File List Manager</string>
     <string name="component_listview_live_stream">Live Stream</string>
-    <string name="component_listview_droneplatform">Drone Platform</string>
+    <string name="component_listview_drone_platform">Drone Platform</string>
     <string name="component_listview_lidar_view">Lidar</string>
     <string name="component_listview_firmware_upgrade">Firmware Upgrade</string>
     <string name="component_listview_utmiss">UTMISS</string>

@@ -5,7 +5,7 @@
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="match_parent">
 
         <RelativeLayout
             android:layout_width="match_parent"
@@ -13,104 +13,134 @@
             android:orientation="vertical">
 
             <com.dji.sdk.sample.internal.utils.VideoFeedView
-                android:id="@+id/video_view_primary_video_feed"
+                android:id="@+id/video_view_primary_video_feed_dp"
                 style="@style/main_camera_view"
                 android:layout_alignParentBottom="false"
                 android:layout_marginTop="30dp" />
 
             <com.dji.sdk.sample.internal.utils.VideoFeedView
-                android:id="@+id/video_view_fpv_video_feed"
+                android:id="@+id/video_view_fpv_video_feed_dp"
                 android:visibility="gone"
                 style="@style/main_camera_view"
                 android:layout_alignParentBottom="false"
-                android:layout_below="@+id/video_view_primary_video_feed"
+                android:layout_below="@+id/video_view_primary_video_feed_dp"
                 android:layout_marginTop="10dp" />
 
+<!--            <SurfaceView-->
+<!--                android:id="@+id/video_view_primary_video_feed_dp"-->
+<!--                style="@style/main_camera_view"-->
+<!--                android:layout_alignParentBottom="false"-->
+<!--                android:layout_marginTop="20dp" />-->
+
             <EditText
-                android:id="@+id/edit_live_show_url_input"
-                android:layout_below="@+id/video_view_fpv_video_feed"
+                android:id="@+id/edit_live_show_url_input_dp"
+                android:layout_below="@+id/video_view_primary_video_feed_dp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textUri" />
 
             <Button
-                android:id="@+id/btn_start_live_show"
+                android:id="@+id/btn_start_live_show_dp"
+                android:layout_width="100dp"
                 style="@style/common_button"
-                android:layout_below="@id/edit_live_show_url_input"
-                android:layout_toLeftOf="@+id/btn_stop_live_show"
+                android:layout_below="@id/edit_live_show_url_input_dp"
+                android:layout_marginLeft="2dp"
                 android:text="Start Live Show" />
 
             <Button
-                android:id="@+id/btn_stop_live_show"
+                android:id="@+id/btn_stop_live_show_dp"
+                android:layout_width="100dp"
                 style="@style/common_button"
-                android:layout_below="@id/edit_live_show_url_input"
-                android:layout_toRightOf="@+id/btn_start_live_show"
+                android:layout_below="@id/edit_live_show_url_input_dp"
+                android:layout_centerHorizontal="true"
+                android:layout_marginLeft="2dp"
+                android:layout_toRightOf="@+id/btn_start_live_show_dp"
                 android:text="Stop Live Show" />
 
             <Button
-                android:id="@+id/btn_sound_on"
+                android:id="@+id/btn_sound_on_dp"
+                android:layout_width="100dp"
                 style="@style/common_button"
-                android:layout_below="@id/btn_start_live_show"
-                android:layout_toLeftOf="@id/btn_sound_off"
-                android:layout_marginLeft="10dp"
-                android:layout_marginRight="10dp"
+                android:layout_below="@id/edit_live_show_url_input_dp"
+                android:layout_marginLeft="2dp"
+                android:layout_toRightOf="@+id/btn_stop_live_show_dp"
                 android:text="Sound On" />
 
             <Button
-                android:id="@+id/btn_sound_off"
+                android:id="@+id/btn_sound_off_dp"
+                android:layout_width="100dp"
                 style="@style/common_button"
-                android:layout_below="@id/btn_stop_live_show"
-                android:layout_toRightOf="@+id/btn_sound_on"
+                android:layout_below="@id/edit_live_show_url_input_dp"
+                android:layout_marginLeft="2dp"
+                android:layout_toRightOf="@+id/btn_sound_on_dp"
                 android:text="Sound Off" />
 
             <ToggleButton
-                android:id="@+id/btn_start_simulator"
-                android:layout_width="wrap_content"
+                android:id="@+id/btn_start_simulator_dp"
+                android:layout_width="100dp"
                 android:layout_height="wrap_content"
                 android:text="Start Simulator"
                 android:textOff="Start Simulator"
                 android:textOn="Stop Simulator"
+                android:layout_marginTop="2dp"
+                android:layout_marginLeft="2dp"
+                style="@style/common_button"
+                android:layout_below="@+id/btn_start_live_show_dp" />
+
+            <Button
+                android:id="@+id/btn_take_off_dp"
+                style="@style/common_button"
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/btn_start_live_show_dp"
+                android:layout_marginLeft="2dp"
+                android:layout_marginTop="2dp"
+                android:layout_toRightOf="@+id/btn_start_simulator_dp"
+                android:text="Take Off" />
+
+            <Button
+                android:id="@+id/btn_landing_dp"
+                style="@style/common_button"
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/btn_start_live_show_dp"
+                android:layout_marginLeft="2dp"
+                android:layout_marginTop="2dp"
+                android:layout_toRightOf="@+id/btn_take_off_dp"
+                android:text="Landing" />
+
+            <TextView
+                android:id="@+id/textview_simulator_dp"
+                android:layout_below="@id/btn_start_simulator_dp"
                 android:layout_marginTop="10dp"
-                style="@style/common_button"
-                android:layout_below="@+id/btn_sound_on"
-                android:layout_marginRight="10dp"/>
-
-            <Button
-                android:id="@+id/btn_take_off"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Take Off"
-                style="@style/common_button"
-                android:layout_below="@id/btn_start_simulator"
-                android:layout_marginTop="10dp"/>
-
-            <Button
-                android:id="@+id/btn_landing"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Landing"
-                style="@style/common_button"
-                android:layout_toRightOf="@+id/btn_take_off"
-                android:layout_marginTop="10dp"/>
+                android:layout_centerHorizontal="true"
+                android:textColor="@color/gray"
+                android:text="Simulator is off." />
 
             <com.dji.sdk.sample.internal.utils.OnScreenJoystick
-                android:id="@+id/directionJoystickRight"
+                android:id="@+id/directionJoystickLeft_dp"
                 android:layout_width="130dp"
                 android:layout_height="130dp"
+                android:layout_below="@id/btn_start_simulator_dp"
                 android:layout_alignParentLeft="true"
+                android:layout_marginTop="80dp"
                 android:layout_alignParentBottom="true"
                 android:layout_marginBottom="10dp"
-                android:layout_marginLeft="10dp"
+                android:layout_marginLeft="30dp"
                 android:background="@mipmap/joystick_bg"/>
 
+
             <com.dji.sdk.sample.internal.utils.OnScreenJoystick
-                android:id="@+id/directionJoystickLeft"
+                android:id="@+id/directionJoystickRight_dp"
                 android:layout_width="130dp"
                 android:layout_height="130dp"
+                android:layout_below="@id/btn_start_simulator_dp"
                 android:layout_alignParentRight="true"
                 android:layout_alignParentBottom="true"
                 android:layout_marginBottom="10dp"
-                android:layout_marginRight="10dp"
+                android:layout_marginRight="30dp"
                 android:background="@mipmap/joystick_bg"/>
 
         </RelativeLayout>
