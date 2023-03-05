@@ -62,8 +62,6 @@ import java.util.TimerTask;
  */
 public class DronePlatformView extends LinearLayout implements PresentableView, View.OnClickListener, CompoundButton.OnCheckedChangeListener {
 
-    private String liveShowUrl = "please input your live show url here";
-
     private VideoFeedView primaryVideoFeedView;
     private VideoFeedView fpvVideoFeedView;
 
@@ -99,20 +97,44 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
 
     private LiveStreamManager.OnLiveChangeListener listener;
     private LiveStreamManager.LiveStreamVideoSource currentVideoSource = LiveStreamManager.LiveStreamVideoSource.Primary;
-    private static final String URL_KEY = "sp_stream_url";
+    private static final String URL_KEY = "stream";
+    private String liveShowUrl = "rtmp://omestreaming.droneplatform.eu:1935/app/stream";
+    private String movementHub = "https://dronecontrolbroker.azurewebsites.net/movementHub";
 
     public DronePlatformView(Context context) {
         super(context);
-        liveShowUrl = context.getSharedPreferences(context.getPackageName(), Context.MODE_PRIVATE).getString(URL_KEY, liveShowUrl);
+        liveShowUrl = context
+                .getSharedPreferences(context.getPackageName(), Context.MODE_PRIVATE)
+                .getString(URL_KEY, liveShowUrl);
         init(context);
         initUI(context);
         initListener();
         initSignalR();
     }
 
+    private void ProceedMovement(String calledMethod, float roll, float pitch, float yaw, float throttle){
+        ToastUtils.setResultToToast(calledMethod);
+        if (flightController != null) {
+            this.roll = roll;
+            this.pitch = pitch;
+            this.yaw = yaw;
+            this.throttle = throttle;
+
+            flightController.sendVirtualStickFlightControlData(
+                    new FlightControlData(roll, pitch, yaw, throttle), new CommonCallbacks.CompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            if (djiError != null) {
+                                ToastUtils.setResultToToast(djiError.getDescription());
+                            }
+                        }
+                    });
+        }
+    }
+
     private void initSignalR() {
         hubConnection = HubConnectionBuilder
-                .create("http://dronecontrolbroker.azurewebsites.net/movementHub")
+                .create(movementHub)
                 .build();
 
         try {
@@ -122,22 +144,11 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
         }
         hubConnection.on(
                 "MoveStepLeft",
-                () -> {
-                    if (flightController != null) {
-                        roll = 4;
-                        flightController.sendVirtualStickFlightControlData(
-                                new FlightControlData(roll, pitch, yaw, throttle), new CommonCallbacks.CompletionCallback() {
-                            @Override
-                            public void onResult(DJIError djiError) {
-                                if (djiError != null) {
-                                    ToastUtils.setResultToToast(djiError.getDescription());
-                                }
-                            }
-                        });
-                    }
-        });
+                () -> ProceedMovement("MoveStepLeft", roll, pitch, 8, throttle));
+        hubConnection.on(
+                "MoveStepRight",
+                () -> ProceedMovement("MoveStepRight", roll, pitch, -8, throttle));
     }
-
 
     private void init(Context context) {
         LayoutInflater layoutInflater = (LayoutInflater) context.getSystemService(Service.LAYOUT_INFLATER_SERVICE);
@@ -209,6 +220,7 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
         screenJoystickLeft = (OnScreenJoystick) findViewById(R.id.directionJoystickLeft_dp);
 
         btnTakeOff.setOnClickListener(this);
+        btnLanding.setOnClickListener(this);
         btnSimulator.setOnCheckedChangeListener(DronePlatformView.this);
 
         if (isSimulatorActived) {

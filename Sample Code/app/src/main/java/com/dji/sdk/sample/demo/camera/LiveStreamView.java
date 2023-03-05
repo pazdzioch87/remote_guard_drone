@@ -71,7 +71,9 @@ public class LiveStreamView extends LinearLayout implements PresentableView, Vie
 
     public LiveStreamView(Context context) {
         super(context);
-        liveShowUrl = context.getSharedPreferences(context.getPackageName(), Context.MODE_PRIVATE).getString(URL_KEY, liveShowUrl);
+        liveShowUrl = context
+                .getSharedPreferences(context.getPackageName(), Context.MODE_PRIVATE)
+                .getString(URL_KEY, liveShowUrl);
         initUI(context);
         initListener();
     }
