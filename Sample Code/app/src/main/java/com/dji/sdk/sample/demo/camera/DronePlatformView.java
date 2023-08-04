@@ -144,10 +144,10 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
         }
         hubConnection.on(
                 "MoveStepLeft",
-                () -> ProceedMovement("MoveStepLeft", roll, pitch, 8, throttle));
+                () -> ProceedMovement("MoveStepLeft", roll, pitch, -12, throttle));
         hubConnection.on(
                 "MoveStepRight",
-                () -> ProceedMovement("MoveStepRight", roll, pitch, -8, throttle));
+                () -> ProceedMovement("MoveStepRight", roll, pitch, 12, throttle));
     }
 
     private void init(Context context) {
