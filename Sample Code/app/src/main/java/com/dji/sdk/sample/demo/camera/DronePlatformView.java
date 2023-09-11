@@ -14,7 +14,6 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.dji.sdk.sample.R;
-import com.dji.sdk.sample.demo.flightcontroller.VirtualStickView;
 import com.dji.sdk.sample.internal.OnScreenJoystickListener;
 import com.dji.sdk.sample.internal.controller.DJISampleApplication;
 import com.dji.sdk.sample.internal.utils.DialogUtils;
@@ -98,8 +97,10 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
     private LiveStreamManager.OnLiveChangeListener listener;
     private LiveStreamManager.LiveStreamVideoSource currentVideoSource = LiveStreamManager.LiveStreamVideoSource.Primary;
     private static final String URL_KEY = "stream";
-    private String liveShowUrl = "rtmp://omestreaming.droneplatform.eu:1935/app/stream";
-    private String movementHub = "https://dronecontrolbroker.azurewebsites.net/movementHub";
+    private String movementHub = "http://192.169.1.18:8001/movementHub";
+    private String liveShowUrl = "rtmp://192.169.1.18:1935/stream/stream";
+//    private String movementHub = "https://dronecontrolbroker.azurewebsites.net/movementHub";
+//    private String liveShowUrl = "rtmp://omestreaming.droneplatform.eu:1935/app/stream";
 
     public DronePlatformView(Context context) {
         super(context);
@@ -132,6 +133,28 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
         }
     }
 
+    private void TakeOff(String calledMethod){
+        ToastUtils.setResultToToast("SUCCESSFUL TAKE OFF");
+//        ToastUtils.setResultToToast(calledMethod);
+//        flightController.startTakeoff(new CommonCallbacks.CompletionCallback() {
+//            @Override
+//            public void onResult(DJIError djiError) {
+//                DialogUtils.showDialogBasedOnError(getContext(), djiError);
+//            }
+//        });
+    }
+
+    private void Landing(String calledMethod){
+        ToastUtils.setResultToToast("SUCCESSFUL LANDING");
+//        ToastUtils.setResultToToast(calledMethod);
+//        flightController.startLanding(new CommonCallbacks.CompletionCallback() {
+//            @Override
+//            public void onResult(DJIError djiError) {
+//                DialogUtils.showDialogBasedOnError(getContext(), djiError);
+//            }
+//        });
+    }
+
     private void initSignalR() {
         hubConnection = HubConnectionBuilder
                 .create(movementHub)
@@ -148,6 +171,12 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
         hubConnection.on(
                 "MoveStepRight",
                 () -> ProceedMovement("MoveStepRight", roll, pitch, 12, throttle));
+        hubConnection.on(
+                "TakeOff",
+                () -> TakeOff("TakeOff"));
+        hubConnection.on(
+                "Landing",
+                () -> Landing("Landing"));
     }
 
     private void init(Context context) {
