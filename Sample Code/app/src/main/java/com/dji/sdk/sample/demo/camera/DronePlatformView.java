@@ -25,6 +25,7 @@ import com.dji.sdk.sample.internal.utils.VideoFeedView;
 import com.dji.sdk.sample.internal.view.PresentableView;
 import com.microsoft.signalr.HubConnection;
 import com.microsoft.signalr.HubConnectionBuilder;
+import com.microsoft.signalr.HubConnectionState;
 
 
 import androidx.annotation.NonNull;
@@ -68,6 +69,7 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
     private Button btnTakeOff;
     private Button btnLanding;
     private ToggleButton btnSimulator;
+    private ToggleButton btnAiSwitch;
     private OnScreenJoystick screenJoystickRight;
     private OnScreenJoystick screenJoystickLeft;
     private TextView textView;
@@ -80,6 +82,7 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
     private float throttle;
     private FlightController flightController = null;
     private boolean isSimulatorActived = false;
+    private boolean isAIFlight = false;
     private Simulator simulator = null;
 
     // ------------------ flight --------------------------//
@@ -88,6 +91,7 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
     private HubConnection hubConnection;
 
     private EditText showUrlInputEdit;
+    private EditText showMovementUrlInputEdit;
 
     private Button startLiveShowBtn;
     private Button stopLiveShowBtn;
@@ -97,20 +101,23 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
     private LiveStreamManager.OnLiveChangeListener listener;
     private LiveStreamManager.LiveStreamVideoSource currentVideoSource = LiveStreamManager.LiveStreamVideoSource.Primary;
     private static final String URL_KEY = "stream";
-    private String movementHub = "http://192.169.1.18:8001/movementHub";
-    private String liveShowUrl = "rtmp://192.169.1.18:1935/stream/stream";
+//    private String movementHub = "http://192.168.1.18:8001/movementHub";
+//    private String movementHub = "http://plkr-hpzb-166/movementHub";
 //    private String movementHub = "https://dronecontrolbroker.azurewebsites.net/movementHub";
 //    private String liveShowUrl = "rtmp://omestreaming.droneplatform.eu:1935/app/stream";
+    private String movementHub = "https://YOUR_NGROK_HERE.ngrok-free.app/movementHub";
+    private String liveShowUrl = "rtmp://192.168.1.18:1935/stream/stream";
+    private HubConnectionState connectionState = HubConnectionState.DISCONNECTED;
 
     public DronePlatformView(Context context) {
         super(context);
+//        initSignalR();
         liveShowUrl = context
                 .getSharedPreferences(context.getPackageName(), Context.MODE_PRIVATE)
                 .getString(URL_KEY, liveShowUrl);
         init(context);
         initUI(context);
         initListener();
-        initSignalR();
     }
 
     private void ProceedMovement(String calledMethod, float roll, float pitch, float yaw, float throttle){
@@ -134,25 +141,35 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
     }
 
     private void TakeOff(String calledMethod){
-        ToastUtils.setResultToToast("SUCCESSFUL TAKE OFF");
-//        ToastUtils.setResultToToast(calledMethod);
-//        flightController.startTakeoff(new CommonCallbacks.CompletionCallback() {
-//            @Override
-//            public void onResult(DJIError djiError) {
-//                DialogUtils.showDialogBasedOnError(getContext(), djiError);
-//            }
-//        });
+        if(isAIFlight)
+        {
+            ToastUtils.setResultToToast(calledMethod);
+            flightController.startTakeoff(new CommonCallbacks.CompletionCallback() {
+                @Override
+                public void onResult(DJIError djiError) {
+                    DialogUtils.showDialogBasedOnError(getContext(), djiError);
+                }
+            });
+        }
+        else {
+            ToastUtils.setResultToToast("SUCCESSFUL TAKE OFF");
+        }
     }
 
     private void Landing(String calledMethod){
-        ToastUtils.setResultToToast("SUCCESSFUL LANDING");
-//        ToastUtils.setResultToToast(calledMethod);
-//        flightController.startLanding(new CommonCallbacks.CompletionCallback() {
-//            @Override
-//            public void onResult(DJIError djiError) {
-//                DialogUtils.showDialogBasedOnError(getContext(), djiError);
-//            }
-//        });
+        if(isAIFlight)
+        {
+            ToastUtils.setResultToToast(calledMethod);
+            flightController.startLanding(new CommonCallbacks.CompletionCallback() {
+                @Override
+                public void onResult(DJIError djiError) {
+                    DialogUtils.showDialogBasedOnError(getContext(), djiError);
+                }
+            });
+        }
+        else {
+            ToastUtils.setResultToToast("SUCCESSFUL LANDING");
+        }
     }
 
     private void initSignalR() {
@@ -160,10 +177,36 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
                 .create(movementHub)
                 .build();
 
+        int connectionTries = 5;
         try {
             hubConnection.start();
         } catch (Exception e) {
             e.printStackTrace();
+        }
+
+        int currentTry = 0;
+        while (connectionState != HubConnectionState.CONNECTED || currentTry < connectionTries)
+        {
+            // Sleep the main thread for 500 ms
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            currentTry += 1;
+            connectionState = hubConnection.getConnectionState();
+            if (connectionState == HubConnectionState.CONNECTING)
+            {
+                continue;
+            }
+            else if (connectionState == HubConnectionState.DISCONNECTED){
+                hubConnection.start();
+            }
+            else if (connectionState == HubConnectionState.CONNECTED)
+            {
+                ToastUtils.setResultToToast(connectionState.toString());
+                break;
+            }
         }
         hubConnection.on(
                 "MoveStepLeft",
@@ -225,9 +268,13 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
         if (Helper.isMultiStreamPlatform()){
             fpvVideoFeedView.setVisibility(VISIBLE);
         }
-
+        // RTMP STREAM
         showUrlInputEdit = (EditText) findViewById(R.id.edit_live_show_url_input_dp);
         showUrlInputEdit.setText(liveShowUrl);
+
+        // SIGNALR
+        showMovementUrlInputEdit = (EditText) findViewById(R.id.edit_movement_url_input_dp);
+        showMovementUrlInputEdit.setText(movementHub);
 
         startLiveShowBtn = (Button) findViewById(R.id.btn_start_live_show_dp);
         stopLiveShowBtn = (Button) findViewById(R.id.btn_stop_live_show_dp);
@@ -242,28 +289,41 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
         btnTakeOff = (Button) findViewById(R.id.btn_take_off_dp);
         btnLanding = (Button) findViewById(R.id.btn_landing_dp);
 
-        btnSimulator = (ToggleButton) findViewById(R.id.btn_start_simulator_dp);
-        textView = (TextView) findViewById(R.id.textview_simulator_dp);
-
         screenJoystickRight = (OnScreenJoystick) findViewById(R.id.directionJoystickRight_dp);
         screenJoystickLeft = (OnScreenJoystick) findViewById(R.id.directionJoystickLeft_dp);
 
         btnTakeOff.setOnClickListener(this);
         btnLanding.setOnClickListener(this);
+
+        // SIMULATOR
+        textView = (TextView) findViewById(R.id.textview_simulator_dp);
+        btnSimulator = (ToggleButton) findViewById(R.id.btn_start_simulator_dp);
         btnSimulator.setOnCheckedChangeListener(DronePlatformView.this);
 
         if (isSimulatorActived) {
             btnSimulator.setChecked(true);
             textView.setText("Simulator is On.");
         }
+
+        // AI
+        btnAiSwitch = (ToggleButton) findViewById(R.id.btn_switch_ai_dp);
+        btnAiSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+            if (buttonView == btnAiSwitch)
+                {
+                    isAIFlight = isChecked;
+                    ToastUtils.setResultToToast("AI Flight is: " + String.valueOf(isChecked));
+                }
+            }
+        });
+        btnAiSwitch.setChecked(false);
     }
 
     private void initListener() {
         showUrlInputEdit.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-            }
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -271,9 +331,19 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
             }
 
             @Override
-            public void afterTextChanged(Editable s) {
+            public void afterTextChanged(Editable s) {}
+        });
+        showMovementUrlInputEdit.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                movementHub = s.toString();
             }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
         });
         listener = new LiveStreamManager.OnLiveChangeListener() {
             @Override
@@ -476,6 +546,7 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
         switch (v.getId()) {
             case R.id.btn_start_live_show_dp:
                 startLiveShow();
+                initSignalR();
                 break;
             case R.id.btn_stop_live_show_dp:
                 stopLiveShow();
