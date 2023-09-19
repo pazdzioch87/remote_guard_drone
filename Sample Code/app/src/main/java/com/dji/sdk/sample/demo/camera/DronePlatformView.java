@@ -101,12 +101,8 @@ public class DronePlatformView extends LinearLayout implements PresentableView, 
     private LiveStreamManager.OnLiveChangeListener listener;
     private LiveStreamManager.LiveStreamVideoSource currentVideoSource = LiveStreamManager.LiveStreamVideoSource.Primary;
     private static final String URL_KEY = "stream";
-//    private String movementHub = "http://192.168.1.18:8001/movementHub";
-//    private String movementHub = "http://plkr-hpzb-166/movementHub";
-//    private String movementHub = "https://dronecontrolbroker.azurewebsites.net/movementHub";
-//    private String liveShowUrl = "rtmp://omestreaming.droneplatform.eu:1935/app/stream";
-    private String movementHub = "https://YOUR_NGROK_HERE.ngrok-free.app/movementHub";
-    private String liveShowUrl = "rtmp://192.168.1.18:1935/stream/stream";
+    private String movementHub = "https://YOUR_NGROK_HTTP_HERE.ngrok-free.app/movementHub";
+    private String liveShowUrl = "rtmp://YOUR_NGROK_TCP_HERE/app/stream";
     private HubConnectionState connectionState = HubConnectionState.DISCONNECTED;
 
     public DronePlatformView(Context context) {

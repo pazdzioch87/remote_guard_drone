@@ -46,7 +46,7 @@
         <!-- personal key -->
         <meta-data
             android:name="com.dji.sdk.API_KEY"
-            android:value="282ed387a18e2bcfc11636f8"/>
+            android:value="YOUR_PRIVATE_APP_KEY_HERE"/>
         <!-- Required for receiving accessory attachment events.
             This is necessary for product when connecting over USB. -->
 
